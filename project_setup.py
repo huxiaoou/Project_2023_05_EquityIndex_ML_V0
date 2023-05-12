@@ -10,9 +10,6 @@ import os
 import sys
 import json
 import platform
-import numpy as np
-import pandas as pd
-import datetime as dt
 
 # platform confirmation
 this_platform = platform.system().upper()
@@ -50,6 +47,7 @@ major_return_dir = os.path.join(futures_by_instrument_dir, global_config["future
 # --- equity
 equity_dir = os.path.join(project_data_root_dir, global_config["equity"]["equity_save_dir"])
 equity_by_instrument_dir = os.path.join(equity_dir, global_config["equity"]["by_instrument_dir"])
+equity_index_by_instrument_dir = os.path.join(equity_by_instrument_dir, global_config["equity"]["index_dir"])
 
 # --- projects
 projects_dir = os.path.join(deploy_dir, global_config["projects"]["projects_save_dir"])
@@ -59,6 +57,7 @@ sys.path.append(os.path.join(projects_dir, "skyrim"))
 research_data_root_dir = "/ProjectsData"
 research_project_name = os.getcwd().split("\\")[-1]
 research_project_data_dir = os.path.join(research_data_root_dir, research_project_name)
+research_features_and_return_dir = os.path.join(research_project_data_dir, "features_and_return")
 
 if __name__ == "__main__":
     from winterhold import check_and_mkdir
@@ -72,5 +71,6 @@ if __name__ == "__main__":
 
     check_and_mkdir(research_data_root_dir)
     check_and_mkdir(research_project_data_dir)
+    check_and_mkdir(research_features_and_return_dir)
 
     print("... directory system for this project has been established.")
