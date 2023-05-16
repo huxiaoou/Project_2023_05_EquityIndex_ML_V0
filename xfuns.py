@@ -5,9 +5,10 @@ import pandas as pd
 
 
 def cal_features_and_return(df: pd.DataFrame,
-                            major_contract: str, contract_multiplier: int,
+                            instrument: str, contract: str, contract_multiplier: int,
                             pre_settle: float, pre_spot_close: float,
-                            sub_win_width: int = 30, tot_bar_num: int = 240, amount_scale: float = 1e4, ret_scale: int = 100) -> pd.DataFrame:
+                            sub_win_width: int = 30, tot_bar_num: int = 240,
+                            amount_scale: float = 1e4, ret_scale: int = 100) -> pd.DataFrame:
     agg_vars = ["open", "high", "low", "close", "volume", "amount"]
     agg_methods = {
         "open": "first",
@@ -33,18 +34,19 @@ def cal_features_and_return(df: pd.DataFrame,
     m15 = df.set_index("datetime")[agg_vars].resample("15T").aggregate(agg_methods).dropna(axis=0, how="all", subset=dropna_cols)
     if len(m05) != tot_bar_num / 5:
         print("... data length is wrong! Length of M05 is {} != {}".format(len(m05), tot_bar_num / 5))
-        print("... contract = {}".format(major_contract))
+        print("... contract = {}".format(contract))
         print("... this program will terminate at once, please check again")
         sys.exit()
     if len(m15) != tot_bar_num / 15:
         print("... data length is wrong! Length of M15 is {} != {}".format(len(m15), tot_bar_num / 15))
-        print("... contract = {}".format(major_contract))
+        print("... contract = {}".format(contract))
         print("... this program will terminate at once, please check again")
         sys.exit()
 
     res = {
-        "contract": major_contract,
-        "timestamp": {}, "tid": {},
+        "instrument": instrument,
+        "contract": contract,
+        "tid": {}, "timestamp": {},
         "alpha00": (pre_settle / pre_spot_close - 1) * ret_scale,
         "alpha01": (pre_close / pre_settle - 1) * ret_scale,
         "alpha02": (this_open / pre_close - 1) * ret_scale,
@@ -65,7 +67,7 @@ def cal_features_and_return(df: pd.DataFrame,
         sorted_return = df_before_t["m01_return"].sort_values(ascending=False)
         sorted_return_by_volume = df_before_t[["m01_return", "volume"]].sort_values(by="volume", ascending=False)
 
-        res["timestamp"][t], res["tid"][t] = ts, "T{:02d}".format(t)
+        res["tid"][t], res["timestamp"][t] = "T{:02d}".format(t), ts
         res["alpha03"][t] = (df_before_t["close"].iloc[-1] / this_open - 1) / norm_scale * ret_scale
         res["alpha04"][t] = sorted_return_by_volume.head(int(0.1 * bar_num_before_t)).mean()["m01_return"] * ret_scale
         res["alpha05"][t] = sorted_return_by_volume.head(int(0.2 * bar_num_before_t)).mean()["m01_return"] * ret_scale

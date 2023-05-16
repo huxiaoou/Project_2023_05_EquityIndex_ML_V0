@@ -92,7 +92,10 @@ for trade_date in calendar.get_iter_list(bgn_date, stp_date, True):
                 num_of_bars, trade_date, equity_instru_id, major_contract))
 
         contract_multiplier = instru_info_table.get_multiplier(equity_instru_id)
-        features_and_ret_df = cal_features_and_return(major_contract_m01_df, major_contract, contract_multiplier, pre_settle, pre_spot_close)
+        features_and_ret_df = cal_features_and_return(
+            df=major_contract_m01_df,
+            instrument=equity_instru_id, contract=major_contract, contract_multiplier=contract_multiplier,
+            pre_settle=pre_settle, pre_spot_close=pre_spot_close)
 
         features_and_return_file = "{}-{}-features_and_return.csv.gz".format(trade_date, equity_instru_id)
         features_and_return_path = os.path.join(save_date_dir, features_and_return_file)
