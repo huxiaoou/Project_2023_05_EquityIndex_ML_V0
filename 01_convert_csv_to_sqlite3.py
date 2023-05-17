@@ -16,7 +16,6 @@ parser.add_argument("--mode", type=str, help="must be one of ['o', 'overwrite', 
 parser.add_argument("--bgn", type=str, help="begin date, format = [YYYYMMDD]", required=True)
 parser.add_argument("--stp", type=str, default=None, help="stop date, format = [YYYYMMDD], can be skip, and program will use bgn only", required=False)
 args = parser.parse_args()
-print(args)
 
 run_mode, bgn_date, stp_date = args.mode, args.bgn, args.stp
 if stp_date is None:

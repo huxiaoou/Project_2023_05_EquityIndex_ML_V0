@@ -7,7 +7,7 @@ equity_indexes = (
 
 sqlite3_tables = {
     "features_and_return": {
-        "table_name": "EM01",
+        "table_name": "features_and_return",
         "primary_keys": {
             "trade_date": "TEXT",
             "instrument": "TEXT",
