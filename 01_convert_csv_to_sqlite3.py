@@ -1,9 +1,7 @@
 import argparse
 import os
 import datetime as dt
-
 import pandas as pd
-
 from project_setup import calendar_path
 from project_setup import research_features_and_return_dir
 from falkreath import CManagerLibWriterByDate, CTable
