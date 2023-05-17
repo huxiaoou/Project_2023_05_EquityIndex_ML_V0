@@ -31,18 +31,16 @@ def cal_features_and_return(df: pd.DataFrame,
     last_vwap = df["vwap"].iloc[-1]
 
     m05 = df.set_index("datetime")[agg_vars].resample("5T").aggregate(agg_methods).dropna(axis=0, how="all", subset=dropna_cols)
+    m10 = df.set_index("datetime")[agg_vars].resample("10T").aggregate(agg_methods).dropna(axis=0, how="all", subset=dropna_cols)
     m15 = df.set_index("datetime")[agg_vars].resample("15T").aggregate(agg_methods).dropna(axis=0, how="all", subset=dropna_cols)
-    if len(m05) != tot_bar_num / 5:
-        print("... data length is wrong! Length of M05 is {} != {}".format(len(m05), tot_bar_num / 5))
-        print("... contract = {}".format(contract))
-        print("... this program will terminate at once, please check again")
-        sys.exit()
-    if len(m15) != tot_bar_num / 15:
-        print("... data length is wrong! Length of M15 is {} != {}".format(len(m15), tot_bar_num / 15))
-        print("... contract = {}".format(contract))
-        print("... this program will terminate at once, please check again")
-        sys.exit()
 
+    for m_agg, m_agg_width in zip((m05, m10, m15), (5, 10, 15)):
+        if len(m_agg) != tot_bar_num / m_agg_width:
+            print("... data length is wrong! Length of M{:02d} is {} != {}".format(
+                m_agg_width, len(m_agg), tot_bar_num / m_agg_width))
+            print("... contract = {}".format(contract))
+            print("... this program will terminate at once, please check again")
+            sys.exit()
     res = {
         "instrument": instrument,
         "contract": contract,
@@ -80,9 +78,15 @@ def cal_features_and_return(df: pd.DataFrame,
         res["alpha12"][t] = sorted_return.tail(int(0.5 * bar_num_before_t)).mean() * ret_scale
         res["alpha13"][t] = sorted_return.tail(int(0.2 * bar_num_before_t)).mean() * ret_scale
         res["alpha14"][t] = sorted_return.tail(int(0.1 * bar_num_before_t)).mean() * ret_scale
-        if t * bar_num_before_t >= 15 * 3:
+        if bar_num_before_t >= 15 * 3:
             res["alpha15"][t] = 1 if m15["low"][0] < m15["low"][1] < m15["low"][2] else 0
-            res["alpha16"][t] = 0 if m15["high"][0] > m15["high"][1] < m15["high"][2] else 0
+            res["alpha16"][t] = 1 if m15["high"][0] > m15["high"][1] > m15["high"][2] else 0
+        elif bar_num_before_t >= 10 * 3:
+            res["alpha15"][t] = 1 if m10["low"][0] < m10["low"][1] < m10["low"][2] else 0
+            res["alpha16"][t] = 1 if m10["high"][0] > m10["high"][1] > m10["high"][2] else 0
+        elif bar_num_before_t >= 5 * 3:
+            res["alpha15"][t] = 1 if m05["low"][0] < m05["low"][1] < m05["low"][2] else 0
+            res["alpha16"][t] = 1 if m05["high"][0] > m05["high"][1] > m05["high"][2] else 0
         else:
             res["alpha15"][t] = 0
             res["alpha16"][t] = 0

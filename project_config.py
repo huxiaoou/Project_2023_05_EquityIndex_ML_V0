@@ -12,8 +12,8 @@ sqlite3_tables = {
             "trade_date": "TEXT",
             "instrument": "TEXT",
             "contract": "TEXT",
-            "timestamp": "INT4",
             "tid": "TEXT",
+            "timestamp": "INT4",
         },
         "value_columns": {
             "alpha00": "REAL",
@@ -37,3 +37,7 @@ sqlite3_tables = {
         }
     }
 }
+
+train_windows = (6, 12, 24)
+x_lbls = ["alpha{:02d}".format(_) for _ in range(17)]
+y_lbls = ["rtm"]

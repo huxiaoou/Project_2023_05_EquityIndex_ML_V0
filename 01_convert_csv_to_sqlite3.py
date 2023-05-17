@@ -9,10 +9,10 @@ from whiterun import CCalendar
 from project_config import equity_indexes
 from project_config import sqlite3_tables
 
-parser = argparse.ArgumentParser(description="A python version interface to view TSDB.")
+parser = argparse.ArgumentParser(description="Convert features and return from CSVs to sqlite3.")
 parser.add_argument("--mode", type=str, help="must be one of ['o', 'overwrite', 'a', 'append']", required=True)
 parser.add_argument("--bgn", type=str, help="begin date, format = [YYYYMMDD]", required=True)
-parser.add_argument("--stp", type=str, default=None, help="stop date, format = [YYYYMMDD], can be skip, and program will use bgn only", required=False)
+parser.add_argument("--stp", type=str, default=None, help="stop date, format = [YYYYMMDD], can be skip, and program will use bgn only")
 args = parser.parse_args()
 
 run_mode, bgn_date, stp_date = args.mode, args.bgn, args.stp
@@ -27,9 +27,10 @@ features_and_return_lib = CManagerLibWriterByDate(
     t_db_save_dir=research_features_and_return_dir,
     t_db_name="features_and_return.db"
 )
+features_and_return_tab = CTable(t_table_struct=sqlite3_tables["features_and_return"])
 features_and_return_lib.initialize_table(
-    t_table=CTable(t_table_struct=sqlite3_tables["features_and_return"]),
-    t_remove_existence=run_mode in ["O", "OVERWRITE"]
+    t_table=features_and_return_tab,
+    t_remove_existence=run_mode.upper() in ["O", "OVERWRITE"]
 )
 
 for trade_date in calendar.get_iter_list(bgn_date, stp_date, True):
