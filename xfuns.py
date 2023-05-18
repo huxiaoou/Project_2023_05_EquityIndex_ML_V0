@@ -70,7 +70,7 @@ def cal_features_and_return(df: pd.DataFrame,
         sorted_return_by_volume = df_before_t[["m01_return", "volume"]].sort_values(by="volume", ascending=False)
 
         res["tid"][t], res["timestamp"][t] = "T{:02d}".format(t), ts
-        res["alpha03"][t] = (df_before_t["close"].iloc[-1] / this_open - 1) / norm_scale * ret_scale
+        res["alpha03"][t] = (df_before_t["vwap"].iloc[-1] / this_open - 1) / norm_scale * ret_scale
         res["alpha04"][t] = sorted_return_by_volume.head(int(0.1 * bar_num_before_t)).mean()["m01_return"] * ret_scale
         res["alpha05"][t] = sorted_return_by_volume.head(int(0.2 * bar_num_before_t)).mean()["m01_return"] * ret_scale
         res["alpha06"][t] = sorted_return_by_volume.head(int(0.5 * bar_num_before_t)).mean()["m01_return"] * ret_scale
