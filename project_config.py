@@ -43,3 +43,6 @@ sqlite3_tables = {
 train_windows = (6, 12, 24)
 x_lbls = ["alpha{:02d}".format(_) for _ in range(19)]
 y_lbls = ["rtm"]
+instruments_universe = ["IC.CFE", "IH.CFE", "IF.CFE", "IM.CFE"]
+tids = ["T{:02d}".format(t) for t in range(1, 8)]
+
