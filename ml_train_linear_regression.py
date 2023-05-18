@@ -1,11 +1,11 @@
 import os
 import datetime as dt
-from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LinearRegression
 from falkreath import CManagerLibReader, CTable
 from whiterun import CCalendarMonthly
 from winterhold import check_and_mkdir
 from xfuns import save_to_sio_obj
+from xfuns import read_from_sio_obj
 
 
 def ml_linear_regression(instrument: str | None, tid: str | None, bgn_date: str, stp_date: str,
@@ -52,27 +52,19 @@ def ml_linear_regression(instrument: str | None, tid: str | None, bgn_date: str,
     features_and_return_lib.set_default(features_and_return_tab.m_table_name)
 
     # --- dates
-    iter_dates = calendar.get_iter_list(bgn_date, stp_date, True)
-    bgn_last_month = calendar.get_latest_month_from_trade_date(iter_dates[0])
-    end_last_month = calendar.get_latest_month_from_trade_date(iter_dates[-1])
-    stp_last_month = calendar.get_next_month(end_last_month, 1)
-    iter_months = calendar.get_iter_month(bgn_last_month, stp_last_month)
+    iter_months = calendar.map_iter_dates_to_iter_months(bgn_date, stp_date)
 
     # --- main core
-    scaler = StandardScaler()
     lm = LinearRegression()
     for train_end_month in iter_months:
-        check_and_mkdir(model_year_dir := os.path.join(models_dir, train_end_month[0:4]))
+        check_and_mkdir(os.path.join(models_dir, train_end_month[0:4]))
         check_and_mkdir(model_month_dir := os.path.join(models_dir, train_end_month[0:4], train_end_month))
 
         for trn_win in train_windows:
-            train_bgn_month = calendar.get_next_month(train_end_month, -trn_win + 1)
-            train_bgn_date = calendar.get_first_date_of_month(train_bgn_month)
-            train_end_date = calendar.get_last_date_of_month(train_end_month)
-            train_stp_date = calendar.get_next_date(train_end_date, 1)
+            train_bgn_date, train_end_date = calendar.get_bgn_and_end_dates_for_trailing_window(train_end_month, trn_win)
             conds = init_conds + [
                 ("trade_date", ">=", train_bgn_date),
-                ("trade_date", "<", train_stp_date),
+                ("trade_date", "<=", train_end_date),
             ]
             src_df = features_and_return_lib.read_by_conditions(
                 t_conditions=conds,
@@ -84,20 +76,16 @@ def ml_linear_regression(instrument: str | None, tid: str | None, bgn_date: str,
                     dt.datetime.now(), model_grp_id, train_end_month, trn_win, len(src_df)))
                 continue
 
-            x_df = src_df[x_lbls]
-            y_df = src_df[y_lbls]
+            x_df, y_df = src_df[x_lbls], src_df[y_lbls]
 
             # --- normalize
-            scaler.fit(x_df)
             scaler_path = os.path.join(
                 model_month_dir,
                 "{}_{}_TMW{:02d}.scl".format(model_grp_id, train_end_month, trn_win)
             )
-            save_to_sio_obj(scaler, scaler_path)
-
+            scaler = read_from_sio_obj(scaler_path)
             x_train = scaler.transform(x_df)
-            # equivalent to:
-            # x_train = (x_df - x_df.mean()) / x_df.std(ddof=0)
+            # equivalent to: x_train = (x_df - x_df.mean()) / x_df.std(ddof=0)
 
             # --- fit model
             lm.fit(X=x_train, y=y_df)

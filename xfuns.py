@@ -5,6 +5,7 @@ import pandas as pd
 import skops.io as sio
 
 
+
 def cal_features_and_return(df: pd.DataFrame,
                             instrument: str, contract: str, contract_multiplier: int,
                             pre_settle: float, pre_spot_close: float,
@@ -114,3 +115,4 @@ def read_from_sio_obj(t_path: str):
     with open(t_path, "rb") as f:
         obj = f.read()
     return sio.loads(obj, trusted=True)
+
