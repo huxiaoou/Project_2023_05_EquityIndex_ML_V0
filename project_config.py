@@ -1,3 +1,5 @@
+import itertools as ittl
+
 equity_indexes = (
     ("000016.SH", "IH.CFE"),
     ("000300.SH", "IF.CFE"),
@@ -37,11 +39,33 @@ sqlite3_tables = {
             "alpha18": "REAL",
             "rtm": "REAL",
         }
-    }
+    },
+
 }
 
-train_windows = (6, 12, 24)
 x_lbls = ["alpha{:02d}".format(_) for _ in range(19)]
 y_lbls = ["rtm"]
 instruments_universe = ["IC.CFE", "IH.CFE", "IF.CFE", "IM.CFE"]
 tids = ["T{:02d}".format(t) for t in range(1, 8)]
+train_windows = (6, 12, 24)
+for instrument, tid in ittl.product(instruments_universe + [None], tids + [None]):
+    model_grp_id = "-".join(["M"] + list(filter(lambda z: z, [instrument, tid])))
+    for trn_win in train_windows:
+        for model_lbl in ["lm", "nn"]:
+            pred_id = model_grp_id + "-TMW{:02d}".format(trn_win) + "-pred-{}".format(model_lbl)
+            sqlite3_tables.update({
+                pred_id: {
+                    "table_name": "predictions",
+                    "primary_keys": {
+                        "trade_date": "TEXT",
+                        "instrument": "TEXT",
+                        "contract": "TEXT",
+                        "tid": "TEXT",
+                        "timestamp": "INT4",
+                    },
+                    "value_columns": {
+                        "rtm": "REAL",
+                        "pred": "REAL",
+                    }
+                },
+            })

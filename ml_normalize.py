@@ -10,8 +10,7 @@ from xfuns import save_to_sio_obj
 def ml_normalize(instrument: str | None, tid: str | None, bgn_date: str, stp_date: str,
                  calendar_path: str,
                  features_and_return_dir: str, models_dir: str,
-                 features_and_return_db_name: str,
-                 features_and_return_db_stru: dict,
+                 sqlite3_tables: dict,
                  train_windows: list, x_lbls: list, y_lbls: list,
                  minimum_data_size: int = 100
                  ):
@@ -24,11 +23,10 @@ def ml_normalize(instrument: str | None, tid: str | None, bgn_date: str, stp_dat
     :param calendar_path:
     :param features_and_return_dir:
     :param models_dir:
-    :param features_and_return_db_name:
-    :param features_and_return_db_stru:
+    :param sqlite3_tables:
     :param train_windows:
     :param x_lbls:
-    :param y_lbls:
+    :param y_lbls: "rtm" must be in it
     :param minimum_data_size:
     :return:
     """
@@ -42,11 +40,12 @@ def ml_normalize(instrument: str | None, tid: str | None, bgn_date: str, stp_dat
     # --- load calendar
     calendar = CCalendarMonthly(calendar_path)
 
-    # --- load lib writer
+    # --- load lib reader
     features_and_return_lib = CManagerLibReader(
         t_db_save_dir=features_and_return_dir,
-        t_db_name=features_and_return_db_name
+        t_db_name="features_and_return.db"
     )
+    features_and_return_db_stru = sqlite3_tables["features_and_return"]
     features_and_return_tab = CTable(t_table_struct=features_and_return_db_stru)
     features_and_return_lib.set_default(features_and_return_tab.m_table_name)
 
@@ -67,7 +66,7 @@ def ml_normalize(instrument: str | None, tid: str | None, bgn_date: str, stp_dat
             ]
             src_df = features_and_return_lib.read_by_conditions(
                 t_conditions=conds,
-                t_value_columns=["trade_date", "contract", "tid"] + x_lbls + y_lbls
+                t_value_columns=x_lbls + y_lbls
             )
 
             if len(src_df) < minimum_data_size:
