@@ -2,6 +2,7 @@ import sys
 import datetime as dt
 import numpy as np
 import pandas as pd
+import skops.io as sio
 
 
 def cal_features_and_return(df: pd.DataFrame,
@@ -54,6 +55,7 @@ def cal_features_and_return(df: pd.DataFrame,
         "alpha09": {}, "alpha10": {}, "alpha11": {},
         "alpha12": {}, "alpha13": {}, "alpha14": {},
         "alpha15": {}, "alpha16": {},
+        "alpha17": {}, "alpha18": {},
         "rtm": {},
     }
 
@@ -61,7 +63,9 @@ def cal_features_and_return(df: pd.DataFrame,
     for t in range(1, sub_win_num):
         bar_num_before_t = t * sub_win_width
         norm_scale = np.sqrt(bar_num_before_t)
-        df_before_t, next_vwap, ts = df.loc[0:bar_num_before_t, :], df.at[bar_num_before_t, "vwap"], df.at[bar_num_before_t, "timestamp"]
+        df_before_t = df.iloc[0:bar_num_before_t, :]
+        next_vwap, ts = df.at[bar_num_before_t, "vwap"], df.at[bar_num_before_t, "timestamp"]
+
         sorted_return = df_before_t["m01_return"].sort_values(ascending=False)
         sorted_return_by_volume = df_before_t[["m01_return", "volume"]].sort_values(by="volume", ascending=False)
 
@@ -90,7 +94,23 @@ def cal_features_and_return(df: pd.DataFrame,
         else:
             res["alpha15"][t] = 0
             res["alpha16"][t] = 0
-        res["rtm"][t] = last_vwap / next_vwap - 1
+        res["alpha17"][t] = df_before_t[["volume", "vwap"]].corr(method="spearman").at["vwap", "volume"]
+        res["alpha18"][t] = df_before_t[["volume", "m01_return"]].corr(method="spearman").at["m01_return", "volume"]
+
+        res["rtm"][t] = (last_vwap / next_vwap - 1) * ret_scale
 
     res_df = pd.DataFrame(res)
     return res_df
+
+
+def save_to_sio_obj(t_sklearn_obj, t_path: str):
+    obj = sio.dumps(t_sklearn_obj)
+    with open(t_path, "wb+") as f:
+        f.write(obj)
+    return 0
+
+
+def read_from_sio_obj(t_path: str):
+    with open(t_path, "rb") as f:
+        obj = f.read()
+    return sio.loads(obj, trusted=True)

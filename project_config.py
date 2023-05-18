@@ -33,11 +33,13 @@ sqlite3_tables = {
             "alpha14": "REAL",
             "alpha15": "REAL",
             "alpha16": "REAL",
+            "alpha17": "REAL",
+            "alpha18": "REAL",
             "rtm": "REAL",
         }
     }
 }
 
 train_windows = (6, 12, 24)
-x_lbls = ["alpha{:02d}".format(_) for _ in range(17)]
+x_lbls = ["alpha{:02d}".format(_) for _ in range(19)]
 y_lbls = ["rtm"]

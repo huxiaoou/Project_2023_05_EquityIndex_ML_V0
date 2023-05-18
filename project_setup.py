@@ -59,6 +59,7 @@ research_data_root_dir = "/ProjectsData"
 research_project_name = os.getcwd().split("\\")[-1]
 research_project_data_dir = os.path.join(research_data_root_dir, research_project_name)
 research_features_and_return_dir = os.path.join(research_project_data_dir, "features_and_return")
+research_models_dir = os.path.join(research_project_data_dir, "models")
 
 if __name__ == "__main__":
     from winterhold import check_and_mkdir
@@ -73,5 +74,6 @@ if __name__ == "__main__":
     check_and_mkdir(research_data_root_dir)
     check_and_mkdir(research_project_data_dir)
     check_and_mkdir(research_features_and_return_dir)
+    check_and_mkdir(research_models_dir)
 
     print("... directory system for this project has been established.")
