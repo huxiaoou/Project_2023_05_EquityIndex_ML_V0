@@ -8,12 +8,13 @@ from winterhold import check_and_mkdir
 from xfuns import save_to_sio_obj
 
 
-def ml_linear_regression(instrument: str, tid: str, bgn_date: str, stp_date: str,
+def ml_linear_regression(instrument: str | None, tid: str | None, bgn_date: str, stp_date: str,
                          calendar_path: str,
                          features_and_return_dir: str, models_dir: str,
                          features_and_return_db_name: str,
                          features_and_return_db_stru: dict,
-                         train_windows: list, x_lbls: list, y_lbls: list
+                         train_windows: list, x_lbls: list, y_lbls: list,
+                         minimum_data_size: int = 100
                          ):
     """
 
@@ -29,6 +30,7 @@ def ml_linear_regression(instrument: str, tid: str, bgn_date: str, stp_date: str
     :param train_windows:
     :param x_lbls:
     :param y_lbls:
+    :param minimum_data_size:
     :return:
     """
 
@@ -76,6 +78,12 @@ def ml_linear_regression(instrument: str, tid: str, bgn_date: str, stp_date: str
                 t_conditions=conds,
                 t_value_columns=["trade_date", "contract", "tid"] + x_lbls + y_lbls
             )
+
+            if len(src_df) < minimum_data_size:
+                print("... {} | LR | {:>12s} | {} | M{:02} | size of train data = {:>4d}, not enough data to train |".format(
+                    dt.datetime.now(), model_grp_id, train_end_month, trn_win, len(src_df)))
+                continue
+
             x_df = src_df[x_lbls]
             y_df = src_df[y_lbls]
 
@@ -88,7 +96,7 @@ def ml_linear_regression(instrument: str, tid: str, bgn_date: str, stp_date: str
             save_to_sio_obj(scaler, scaler_path)
 
             x_train = scaler.transform(x_df)
-            # equivalent
+            # equivalent to:
             # x_train = (x_df - x_df.mean()) / x_df.std(ddof=0)
 
             # --- fit model
@@ -113,7 +121,6 @@ def ml_linear_regression(instrument: str, tid: str, bgn_date: str, stp_date: str
 
             print("... {} | LR | {:>12s} | {} | M{:02} | R-square = {:.6f} |".format(
                 dt.datetime.now(), model_grp_id, train_end_month, trn_win, r20))
-        break
 
     features_and_return_lib.close()
     return 0
