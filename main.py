@@ -57,8 +57,6 @@ if switch["lm"]:
 
 if switch["test"]:
     for instrument, tid in ittl.product(instruments_universe + [None], tids + [None]):
-        model_grp_id = "-".join(["M"] + list(filter(lambda z: z, [instrument, tid])))
-        pred_id = model_grp_id + "-pred-lm"
         ml_model_test(
             model_lbl="lm",
             instrument=instrument, tid=tid,

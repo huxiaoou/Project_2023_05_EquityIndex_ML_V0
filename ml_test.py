@@ -15,7 +15,7 @@ def ml_model_test(model_lbl: str,
                   ):
     """
 
-    :param model_lbl: ["lm", "nn"]
+    :param model_lbl: ["lm", "mlpc", "mlpr"]
     :param instrument: like IC.CFE
     :param tid: T01,...,T07
     :param bgn_date: format = [YYYYMMDD]
@@ -93,20 +93,17 @@ def ml_model_test(model_lbl: str,
             x_test = scaler.transform(x_df)
 
             # --- fit model
-            if model_lbl.upper() == "LM":
-                model_month_file = "{}_{}_TMW{:02d}.lm".format(model_grp_id, train_end_month, trn_win)
-            elif model_lbl.upper() == "NN":
-                model_month_file = "{}_{}_TMW{:02d}.nn".format(model_grp_id, train_end_month, trn_win)
-            else:
-                print("... model_lbl = {} is illegal".format(model_lbl))
+            model_month_file = "{}_{}_TMW{:02d}.lm".format(model_grp_id, train_end_month, trn_win, model_lbl)
+            train_model_path = os.path.join(model_month_dir, model_month_file)
+            try:
+                train_model = read_from_sio_obj(train_model_path)
+            except FileNotFoundError:
+                print("... train model path = {} does not exist".format(model_lbl))
                 print("... please check again")
                 print("... this program will terminate at once")
                 sys.exit()
 
-            train_model_path = os.path.join(model_month_dir, model_month_file)
-            train_model = read_from_sio_obj(train_model_path)
             src_df["pred"] = train_model.predict(X=x_test)[:, 0]
-
             pred_id = model_grp_id + "-TMW{:02d}".format(trn_win) + "-pred-{}".format(model_lbl)
             pred_lib_manager[pred_id].update(
                 t_update_df=src_df[["trade_date", "instrument", "contract", "tid", "timestamp", "rtm", "pred"]],
