@@ -5,7 +5,6 @@ import pandas as pd
 import skops.io as sio
 
 
-
 def cal_features_and_return(df: pd.DataFrame,
                             instrument: str, contract: str, contract_multiplier: int,
                             pre_settle: float, pre_spot_close: float,
@@ -25,7 +24,7 @@ def cal_features_and_return(df: pd.DataFrame,
     # intermediary variables
     df["datetime"] = df["timestamp"].map(dt.datetime.fromtimestamp)
     df["vwap"] = (df["amount"] / df["volume"] / contract_multiplier * amount_scale).fillna(method="ffill")
-    df["m01_return"] = df["vwap"] / df["vwap"].shift(1).fillna(pre_settle) - 1
+    df["m01_return"] = (df["vwap"] / df["vwap"].shift(1).fillna(pre_settle) - 1) * ret_scale
 
     # basic price
     pre_close = df["preclose"].iloc[0]
@@ -115,4 +114,3 @@ def read_from_sio_obj(t_path: str):
     with open(t_path, "rb") as f:
         obj = f.read()
     return sio.loads(obj, trusted=True)
-

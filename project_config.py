@@ -69,3 +69,5 @@ for instrument, tid in ittl.product(instruments_universe + [None], tids + [None]
                     }
                 },
             })
+
+cost_rate = 5e-4
