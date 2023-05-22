@@ -5,11 +5,12 @@ import pandas as pd
 import skops.io as sio
 
 
-def cal_features_and_return(df: pd.DataFrame,
-                            instrument: str, contract: str, contract_multiplier: int,
-                            pre_settle: float, pre_spot_close: float,
-                            sub_win_width: int = 30, tot_bar_num: int = 240,
-                            amount_scale: float = 1e4, ret_scale: int = 100) -> pd.DataFrame:
+def cal_features_and_return_one_day(df: pd.DataFrame,
+                                    instrument: str, contract: str, contract_multiplier: int,
+                                    pre_settle: float, pre_spot_close: float,
+                                    sub_win_width: int = 30, tot_bar_num: int = 240,
+                                    amount_scale: float = 1e4, ret_scale: int = 100) -> pd.DataFrame:
+    # aggregate variables
     agg_vars = ["open", "high", "low", "close", "volume", "amount"]
     agg_methods = {
         "open": "first",
@@ -27,9 +28,9 @@ def cal_features_and_return(df: pd.DataFrame,
     df["m01_return"] = (df["vwap"] / df["vwap"].shift(1).fillna(pre_settle) - 1) * ret_scale
 
     # basic price
-    pre_close = df["preclose"].iloc[0]
-    this_open = df["daily_open"].iloc[0]
-    last_vwap = df["vwap"].iloc[-1]
+    prev_day_close = df["preclose"].iloc[0]
+    this_day_open = df["daily_open"].iloc[0]
+    this_day_end_vwap = df["vwap"].iloc[-1]
 
     m05 = df.set_index("datetime")[agg_vars].resample("5T").aggregate(agg_methods).dropna(axis=0, how="all", subset=dropna_cols)
     m10 = df.set_index("datetime")[agg_vars].resample("10T").aggregate(agg_methods).dropna(axis=0, how="all", subset=dropna_cols)
@@ -47,8 +48,8 @@ def cal_features_and_return(df: pd.DataFrame,
         "contract": contract,
         "tid": {}, "timestamp": {},
         "alpha00": (pre_settle / pre_spot_close - 1) * ret_scale,
-        "alpha01": (pre_close / pre_settle - 1) * ret_scale,
-        "alpha02": (this_open / pre_close - 1) * ret_scale,
+        "alpha01": (prev_day_close / pre_settle - 1) * ret_scale,
+        "alpha02": (this_day_open / prev_day_close - 1) * ret_scale,
         "alpha03": {},
         "alpha04": {}, "alpha05": {}, "alpha06": {},
         "alpha07": {}, "alpha08": {},
@@ -70,12 +71,12 @@ def cal_features_and_return(df: pd.DataFrame,
         sorted_return_by_volume = df_before_t[["m01_return", "volume"]].sort_values(by="volume", ascending=False)
 
         res["tid"][t], res["timestamp"][t] = "T{:02d}".format(t), ts
-        res["alpha03"][t] = (df_before_t["vwap"].iloc[-1] / this_open - 1) / norm_scale * ret_scale
+        res["alpha03"][t] = (df_before_t["vwap"].iloc[-1] / this_day_open - 1) / norm_scale * ret_scale
         res["alpha04"][t] = sorted_return_by_volume.head(int(0.1 * bar_num_before_t)).mean()["m01_return"] * ret_scale
         res["alpha05"][t] = sorted_return_by_volume.head(int(0.2 * bar_num_before_t)).mean()["m01_return"] * ret_scale
         res["alpha06"][t] = sorted_return_by_volume.head(int(0.5 * bar_num_before_t)).mean()["m01_return"] * ret_scale
-        res["alpha07"][t] = (df_before_t["daily_high"].iloc[-1] / this_open - 1) / norm_scale * ret_scale
-        res["alpha08"][t] = (df_before_t["daily_low"].iloc[-1] / this_open - 1) / norm_scale * ret_scale
+        res["alpha07"][t] = (df_before_t["daily_high"].iloc[-1] / this_day_open - 1) / norm_scale * ret_scale
+        res["alpha08"][t] = (df_before_t["daily_low"].iloc[-1] / this_day_open - 1) / norm_scale * ret_scale
         res["alpha09"][t] = sorted_return.head(int(0.1 * bar_num_before_t)).mean() * ret_scale
         res["alpha10"][t] = sorted_return.head(int(0.2 * bar_num_before_t)).mean() * ret_scale
         res["alpha11"][t] = sorted_return.head(int(0.5 * bar_num_before_t)).mean() * ret_scale
@@ -97,7 +98,7 @@ def cal_features_and_return(df: pd.DataFrame,
         res["alpha17"][t] = df_before_t[["volume", "vwap"]].corr(method="spearman").at["vwap", "volume"]
         res["alpha18"][t] = df_before_t[["volume", "m01_return"]].corr(method="spearman").at["m01_return", "volume"]
 
-        res["rtm"][t] = (last_vwap / next_vwap - 1) * ret_scale
+        res["rtm"][t] = (this_day_end_vwap / next_vwap - 1) * ret_scale
 
     res_df = pd.DataFrame(res)
     return res_df

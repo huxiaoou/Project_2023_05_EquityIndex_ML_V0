@@ -6,7 +6,7 @@ import pandas as pd
 from whiterun import CCalendar, CInstrumentInfoTable
 from winterhold import check_and_mkdir
 from falkreath import CManagerLibReader, CTable
-from xfuns import cal_features_and_return
+from xfuns import cal_features_and_return_one_day
 
 
 def cal_features_and_return(bgn_date: str, stp_date: str,
@@ -19,7 +19,9 @@ def cal_features_and_return(bgn_date: str, stp_date: str,
                             futures_md_dir: str,
                             major_minor_dir: str,
                             research_features_and_return_dir: str,
+                            verbose: bool = False
                             ):
+    im_bgn_date = "20220722"
     id_cols = ["timestamp", "loc_id", "instrument", "exchange", "wind_code"]
     val_cols = [
         "open", "high", "low", "close",
@@ -36,9 +38,7 @@ def cal_features_and_return(bgn_date: str, stp_date: str,
     instru_info_table = CInstrumentInfoTable(t_path=futures_instru_info_path, t_index_label="windCode", t_type="CSV")
 
     # --- spot and futures manager
-    spot_data_manager = {}
-    futures_md_manager = {}
-    major_minor_manager = {}
+    spot_data_manager, futures_md_manager, major_minor_manager = {}, {}, {}
     for equity_index_code, equity_instru_id in equity_indexes:
         spot_data_file = "{}.csv".format(equity_index_code)
         spot_data_path = os.path.join(equity_index_by_instrument_dir, spot_data_file)
@@ -77,7 +77,7 @@ def cal_features_and_return(bgn_date: str, stp_date: str,
         check_and_mkdir(save_date_dir := os.path.join(research_features_and_return_dir, trade_date[0:4], trade_date))
 
         for equity_index_code, equity_instru_id in equity_indexes:
-            if trade_date <= "20220722" and equity_instru_id == "IM.CFE":
+            if (trade_date <= im_bgn_date) and (equity_instru_id == "IM.CFE"):
                 continue
             try:
                 major_contract = major_minor_manager[equity_instru_id].at[trade_date, "n_contract"]
@@ -90,9 +90,10 @@ def cal_features_and_return(bgn_date: str, stp_date: str,
             if (num_of_bars := len(major_contract_m01_df)) != 240:
                 print("Error! Number of bars = {} @ {} for {} - {}".format(
                     num_of_bars, trade_date, equity_instru_id, major_contract))
+                sys.exit()
 
             contract_multiplier = instru_info_table.get_multiplier(equity_instru_id)
-            features_and_ret_df = cal_features_and_return(
+            features_and_ret_df = cal_features_and_return_one_day(
                 df=major_contract_m01_df,
                 instrument=equity_instru_id, contract=major_contract, contract_multiplier=contract_multiplier,
                 pre_settle=pre_settle, pre_spot_close=pre_spot_close)
@@ -101,7 +102,8 @@ def cal_features_and_return(bgn_date: str, stp_date: str,
             features_and_return_path = os.path.join(save_date_dir, features_and_return_file)
             features_and_ret_df.to_csv(features_and_return_path, index=False, float_format="%.6f")
 
-        print("... features and return are calculated for {}".format(trade_date))
+        if verbose:
+            print("... features and return are calculated for {}".format(trade_date))
 
     # --- close lib
     m01_db.close()
