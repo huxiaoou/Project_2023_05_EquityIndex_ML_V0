@@ -66,13 +66,6 @@ research_summary_dir = os.path.join(research_project_data_dir, "summary")
 if __name__ == "__main__":
     from winterhold import check_and_mkdir
 
-    check_and_mkdir(deploy_dir)
-    check_and_mkdir(projects_dir)
-    check_and_mkdir(project_data_root_dir)
-    check_and_mkdir(calendar_dir)
-    check_and_mkdir(futures_dir)
-    check_and_mkdir(futures_md_dir)
-
     check_and_mkdir(research_data_root_dir)
     check_and_mkdir(research_project_data_dir)
     check_and_mkdir(research_features_and_return_dir)

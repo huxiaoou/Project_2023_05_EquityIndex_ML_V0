@@ -31,7 +31,7 @@ switch = {
     "normalize": False,
     "lm": False,
     "test": False,
-    "summary": True
+    "summary": False,
 }
 if switch["features_and_return"]:
     cal_features_and_return(
