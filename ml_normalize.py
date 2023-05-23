@@ -1,9 +1,9 @@
 import os
 import datetime as dt
 from sklearn.preprocessing import StandardScaler
-from falkreath import CManagerLibReader, CTable
-from whiterun import CCalendarMonthly
-from winterhold import check_and_mkdir
+from skyrim.falkreath import CManagerLibReader, CTable
+from skyrim.whiterun import CCalendarMonthly
+from skyrim.winterhold import check_and_mkdir
 from xfuns import save_to_sio_obj
 
 
@@ -33,7 +33,7 @@ def ml_normalize(instrument: str | None, tid: str | None, trn_win: int,
     """
 
     init_conds = [(k, "=", v) for k, v in zip(("instrument", "tid"), (instrument, tid)) if v is not None]
-    model_grp_id = "-".join(["M"] + list(filter(lambda z: z, [instrument, tid])))
+    model_grp_id = "-".join(["M"] + list(filter(lambda z: z, [instrument, tid])) + ["TMW{:02d}".format(trn_win)])
 
     if stp_date is None:
         stp_date = (dt.datetime.strptime(bgn_date, "%Y%m%d") + dt.timedelta(days=1)).strftime("%Y%m%d")
@@ -77,13 +77,13 @@ def ml_normalize(instrument: str | None, tid: str | None, trn_win: int,
         # --- normalize
         scaler_path = os.path.join(
             model_month_dir,
-            "{}_{}_TMW{:02d}.scl".format(model_grp_id, train_end_month, trn_win)
+            "{}-{}.scl".format(model_grp_id, train_end_month)
         )
         scaler.fit(x_df)
         save_to_sio_obj(scaler, scaler_path)
 
-        print("... {} | NORM | {:>12s} | {} | M{:02} | Normalized |".format(
-            dt.datetime.now(), model_grp_id, train_end_month, trn_win))
+        print("... {0} | NORM | {1:>24s} | {2} | Normalized |".format(
+            dt.datetime.now(), model_grp_id, train_end_month))
 
     features_and_return_lib.close()
     return 0

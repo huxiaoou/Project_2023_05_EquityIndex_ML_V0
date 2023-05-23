@@ -1,8 +1,8 @@
 import os
 import datetime as dt
 import sys
-from falkreath import CManagerLibReader, CManagerLibWriter, CTable
-from whiterun import CCalendarMonthly
+from skyrim.falkreath import CManagerLibReader, CManagerLibWriter, CTable
+from skyrim.whiterun import CCalendarMonthly
 from xfuns import read_from_sio_obj
 
 

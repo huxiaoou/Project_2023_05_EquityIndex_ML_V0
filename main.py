@@ -26,13 +26,14 @@ md_bgn_date, md_stp_date = "20160101", "20230515"
 trn_bgn_date, trn_stp_date = "20180101", "20230515"
 
 switch = {
-    "features_and_return": False,
+    "features_and_return": True,
     "toSql": False,
     "normalize": False,
     "lm": False,
     "test": False,
     "summary": False,
 }
+
 if switch["features_and_return"]:
     cal_features_and_return(
         bgn_date=md_bgn_date, stp_date=md_stp_date, equity_indexes=equity_indexes,

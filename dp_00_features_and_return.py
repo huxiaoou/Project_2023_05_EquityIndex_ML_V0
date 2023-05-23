@@ -3,9 +3,9 @@ import os
 import datetime as dt
 import json
 import pandas as pd
-from whiterun import CCalendar, CInstrumentInfoTable
-from winterhold import check_and_mkdir
-from falkreath import CManagerLibReader, CTable
+from skyrim.whiterun import CCalendar, CInstrumentInfoTable
+from skyrim.winterhold import check_and_mkdir
+from skyrim.falkreath import CManagerLibReader, CTable
 from xfuns import cal_features_and_return_one_day
 
 

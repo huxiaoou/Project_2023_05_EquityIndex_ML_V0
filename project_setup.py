@@ -52,7 +52,6 @@ equity_index_by_instrument_dir = os.path.join(equity_by_instrument_dir, global_c
 
 # --- projects
 projects_dir = os.path.join(deploy_dir, global_config["projects"]["projects_save_dir"])
-sys.path.append(os.path.join(projects_dir, "skyrim"))
 
 # --- projects data
 research_data_root_dir = "/ProjectsData"
@@ -64,7 +63,7 @@ research_predictions_dir = os.path.join(research_project_data_dir, "predictions"
 research_summary_dir = os.path.join(research_project_data_dir, "summary")
 
 if __name__ == "__main__":
-    from winterhold import check_and_mkdir
+    from skyrim.winterhold import check_and_mkdir
 
     check_and_mkdir(research_data_root_dir)
     check_and_mkdir(research_project_data_dir)

@@ -1,8 +1,8 @@
 import os
 import datetime as dt
 import pandas as pd
-from falkreath import CManagerLibWriterByDate, CTable
-from whiterun import CCalendar
+from skyrim.falkreath import CManagerLibWriterByDate, CTable
+from skyrim.whiterun import CCalendar
 
 
 def convert_csv_to_sqlite3(run_mode: str, bgn_date: str, stp_date: str,

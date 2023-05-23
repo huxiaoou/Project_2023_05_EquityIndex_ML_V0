@@ -1,9 +1,9 @@
 import os
 import datetime as dt
 from sklearn.linear_model import LinearRegression
-from falkreath import CManagerLibReader, CTable
-from whiterun import CCalendarMonthly
-from winterhold import check_and_mkdir
+from skyrim.falkreath import CManagerLibReader, CTable
+from skyrim.whiterun import CCalendarMonthly
+from skyrim.winterhold import check_and_mkdir
 from xfuns import save_to_sio_obj
 from xfuns import read_from_sio_obj
 

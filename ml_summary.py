@@ -1,11 +1,9 @@
 import os
-import datetime as dt
-import sys
 import itertools as ittl
 import numpy as np
 import pandas as pd
-from falkreath import CManagerLibReader, CTable
-from riften import CNAV
+from skyrim.falkreath import CManagerLibReader, CTable
+from skyrim.riften import CNAV
 
 
 def cal_precision_and_recall(t_value: int, t_y_actu: np.ndarray, t_y_pred: np.ndarray):

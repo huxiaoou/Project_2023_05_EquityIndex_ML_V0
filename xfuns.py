@@ -25,6 +25,7 @@ def cal_features_and_return_one_day(df: pd.DataFrame,
     # intermediary variables
     df["datetime"] = df["timestamp"].map(dt.datetime.fromtimestamp)
     df["vwap"] = (df["amount"] / df["volume"] / contract_multiplier * amount_scale).fillna(method="ffill")
+    df["vwap_cum"] = (df["amount"].cumsum() / df["volume"].cumsum() / contract_multiplier * amount_scale).fillna(method="ffill")
     df["m01_return"] = (df["vwap"] / df["vwap"].shift(1).fillna(pre_settle) - 1) * ret_scale
 
     # basic price
@@ -50,13 +51,12 @@ def cal_features_and_return_one_day(df: pd.DataFrame,
         "alpha00": (pre_settle / pre_spot_close - 1) * ret_scale,
         "alpha01": (prev_day_close / pre_settle - 1) * ret_scale,
         "alpha02": (this_day_open / prev_day_close - 1) * ret_scale,
-        "alpha03": {},
-        "alpha04": {}, "alpha05": {}, "alpha06": {},
-        "alpha07": {}, "alpha08": {},
-        "alpha09": {}, "alpha10": {}, "alpha11": {},
-        "alpha12": {}, "alpha13": {}, "alpha14": {},
-        "alpha15": {}, "alpha16": {},
-        "alpha17": {}, "alpha18": {},
+        "alpha03": {}, "alpha04": {}, "alpha05": {}, "alpha06": {},  # prices return
+        "alpha07": {}, "alpha08": {}, "alpha09": {},  # #top #diff #return
+        "alpha10": {}, "alpha11": {}, "alpha12": {},  # corr(vwap, volume)
+        "alpha13": {}, "alpha14": {}, "alpha15": {},  # corr(m01_return, volume)
+        "alpha16": {}, "alpha17": {},  # chart
+        "alpha18": {}, "alpha19": {},
         "rtm": {},
     }
 
@@ -67,36 +67,48 @@ def cal_features_and_return_one_day(df: pd.DataFrame,
         df_before_t = df.iloc[0:bar_num_before_t, :]
         next_vwap, ts = df.at[bar_num_before_t, "vwap"], df.at[bar_num_before_t, "timestamp"]
 
-        sorted_return = df_before_t["m01_return"].sort_values(ascending=False)
-        sorted_return_by_volume = df_before_t[["m01_return", "volume"]].sort_values(by="volume", ascending=False)
+        sorted_vwap_and_ret_by_volume = df_before_t[["vwap", "m01_return", "volume"]].sort_values(by="volume", ascending=False)
+        top01_bars = int(0.1 * bar_num_before_t)
+        top02_bars = int(0.2 * bar_num_before_t)
+        top05_bars = int(0.5 * bar_num_before_t)
+        corr_top_01 = sorted_vwap_and_ret_by_volume.head(top01_bars).corr(method="spearman")
+        corr_top_02 = sorted_vwap_and_ret_by_volume.head(top02_bars).corr(method="spearman")
+        corr_top_05 = sorted_vwap_and_ret_by_volume.head(top05_bars).corr(method="spearman")
 
         res["tid"][t], res["timestamp"][t] = "T{:02d}".format(t), ts
+
         res["alpha03"][t] = (df_before_t["vwap"].iloc[-1] / this_day_open - 1) / norm_scale * ret_scale
-        res["alpha04"][t] = sorted_return_by_volume.head(int(0.1 * bar_num_before_t)).mean()["m01_return"] * ret_scale
-        res["alpha05"][t] = sorted_return_by_volume.head(int(0.2 * bar_num_before_t)).mean()["m01_return"] * ret_scale
-        res["alpha06"][t] = sorted_return_by_volume.head(int(0.5 * bar_num_before_t)).mean()["m01_return"] * ret_scale
-        res["alpha07"][t] = (df_before_t["daily_high"].iloc[-1] / this_day_open - 1) / norm_scale * ret_scale
-        res["alpha08"][t] = (df_before_t["daily_low"].iloc[-1] / this_day_open - 1) / norm_scale * ret_scale
-        res["alpha09"][t] = sorted_return.head(int(0.1 * bar_num_before_t)).mean() * ret_scale
-        res["alpha10"][t] = sorted_return.head(int(0.2 * bar_num_before_t)).mean() * ret_scale
-        res["alpha11"][t] = sorted_return.head(int(0.5 * bar_num_before_t)).mean() * ret_scale
-        res["alpha12"][t] = sorted_return.tail(int(0.5 * bar_num_before_t)).mean() * ret_scale
-        res["alpha13"][t] = sorted_return.tail(int(0.2 * bar_num_before_t)).mean() * ret_scale
-        res["alpha14"][t] = sorted_return.tail(int(0.1 * bar_num_before_t)).mean() * ret_scale
+        res["alpha04"][t] = (df_before_t["vwap_cum"].iloc[-1] / this_day_open - 1) / norm_scale * ret_scale
+        res["alpha05"][t] = (df_before_t["daily_high"].iloc[-1] / this_day_open - 1) / norm_scale * ret_scale
+        res["alpha06"][t] = (df_before_t["daily_low"].iloc[-1] / this_day_open - 1) / norm_scale * ret_scale
+
+        res["alpha07"][t] = sorted_vwap_and_ret_by_volume.head(top01_bars).mean()["m01_return"] * ret_scale
+        res["alpha08"][t] = sorted_vwap_and_ret_by_volume.head(top02_bars).tail(top02_bars - top01_bars).mean()["m01_return"] * ret_scale
+        res["alpha09"][t] = sorted_vwap_and_ret_by_volume.head(top05_bars).tail(top05_bars - top02_bars).mean()["m01_return"] * ret_scale
+
+        res["alpha10"][t] = corr_top_01.at["vwap", "volume"]
+        res["alpha11"][t] = corr_top_02.at["vwap", "volume"]
+        res["alpha12"][t] = corr_top_05.at["vwap", "volume"]
+
+        res["alpha13"][t] = corr_top_01.at["m01_return", "volume"]
+        res["alpha14"][t] = corr_top_02.at["m01_return", "volume"]
+        res["alpha15"][t] = corr_top_05.at["m01_return", "volume"]
+
         if bar_num_before_t >= 15 * 3:
-            res["alpha15"][t] = 1 if m15["low"][0] < m15["low"][1] < m15["low"][2] else 0
-            res["alpha16"][t] = 1 if m15["high"][0] > m15["high"][1] > m15["high"][2] else 0
+            res["alpha16"][t] = 1 if m15["low"][0] < m15["low"][1] < m15["low"][2] else 0
+            res["alpha17"][t] = 1 if m15["high"][0] > m15["high"][1] > m15["high"][2] else 0
         elif bar_num_before_t >= 10 * 3:
-            res["alpha15"][t] = 1 if m10["low"][0] < m10["low"][1] < m10["low"][2] else 0
-            res["alpha16"][t] = 1 if m10["high"][0] > m10["high"][1] > m10["high"][2] else 0
+            res["alpha16"][t] = 1 if m10["low"][0] < m10["low"][1] < m10["low"][2] else 0
+            res["alpha17"][t] = 1 if m10["high"][0] > m10["high"][1] > m10["high"][2] else 0
         elif bar_num_before_t >= 5 * 3:
-            res["alpha15"][t] = 1 if m05["low"][0] < m05["low"][1] < m05["low"][2] else 0
-            res["alpha16"][t] = 1 if m05["high"][0] > m05["high"][1] > m05["high"][2] else 0
+            res["alpha16"][t] = 1 if m05["low"][0] < m05["low"][1] < m05["low"][2] else 0
+            res["alpha17"][t] = 1 if m05["high"][0] > m05["high"][1] > m05["high"][2] else 0
         else:
-            res["alpha15"][t] = 0
             res["alpha16"][t] = 0
-        res["alpha17"][t] = df_before_t[["volume", "vwap"]].corr(method="spearman").at["vwap", "volume"]
-        res["alpha18"][t] = df_before_t[["volume", "m01_return"]].corr(method="spearman").at["m01_return", "volume"]
+            res["alpha17"][t] = 0
+
+        res["alpha18"][t] = df_before_t[["volume", "vwap"]].corr(method="spearman").at["vwap", "volume"]
+        res["alpha19"][t] = df_before_t[["volume", "m01_return"]].corr(method="spearman").at["m01_return", "volume"]
 
         res["rtm"][t] = (this_day_end_vwap / next_vwap - 1) * ret_scale
 
