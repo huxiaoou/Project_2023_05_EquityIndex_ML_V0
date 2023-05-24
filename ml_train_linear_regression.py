@@ -1,5 +1,6 @@
 import os
 import datetime as dt
+import numpy as np
 from sklearn.linear_model import LinearRegression
 from skyrim.falkreath import CManagerLibReader, CTable
 from skyrim.whiterun import CCalendarMonthly
@@ -78,7 +79,7 @@ def ml_linear_regression(instrument: str | None, tid: str | None, trn_win: int,
             continue
 
         # --- fit model
-        x_train = scaler.transform(x_df)
+        x_train = np.nan_to_num(scaler.transform(x_df), nan=0)
         train_model.fit(X=x_train, y=y_df)
 
         train_model_file = "{}-{}.{}".format(model_grp_id, train_end_month, model_lbl)

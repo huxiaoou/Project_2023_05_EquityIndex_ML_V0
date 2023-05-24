@@ -44,8 +44,8 @@ def ml_summary_model(model_lbl: str,
                      sqlite3_tables: dict,
                      cost_rate: float, ret_scale: int = 100
                      ):
-    model_grp_id = "-".join(["M"] + list(filter(lambda z: z, [instrument, tid])))
-    pred_id = model_grp_id + "-TMW{:02d}".format(trn_win) + "-pred-{}".format(model_lbl)
+    model_grp_id = "-".join(filter(lambda z: z, ["M", instrument, tid, "TMW{:02d}".format(trn_win)]))
+    pred_id = model_grp_id + "-pred-{}".format(model_lbl)
     predictions_lib = CManagerLibReader(
         t_db_save_dir=predictions_dir,
         t_db_name=pred_id + ".db",
@@ -97,7 +97,7 @@ def ml_summary(model_lbl: str,
         )
         res_models.append(ans_model)
         res_trades.append(ans_trade)
-        print("...", instrument, tid, train_window)
+        print("...", instrument, tid, train_window, "summarized")
     res_models_df, res_trades_df = pd.DataFrame(res_models), pd.DataFrame(res_trades)
 
     res_models_file = "summary.{}.models.csv.gz".format(model_lbl)

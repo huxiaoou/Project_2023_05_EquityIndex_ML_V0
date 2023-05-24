@@ -1,5 +1,6 @@
 import os
 import datetime as dt
+import numpy as np
 from skyrim.falkreath import CManagerLibReader, CManagerLibWriter, CTable
 from skyrim.whiterun import CCalendarMonthly
 from xfuns import read_from_sio_obj
@@ -90,7 +91,7 @@ def ml_model_test(model_lbl: str,
             continue
 
         # --- fit model
-        x_test = scaler.transform(x_df)
+        x_test = np.nan_to_num(scaler.transform(x_df), nan=0)
 
         train_model_file = "{}-{}.{}".format(model_grp_id, train_end_month, model_lbl)
         train_model_path = os.path.join(model_month_dir, train_model_file)
@@ -101,12 +102,9 @@ def ml_model_test(model_lbl: str,
         # --- prediction
         src_df["pred"] = train_model.predict(X=x_test)[:, 0]
         predictions_lib.update(
-            t_update_df=src_df[["rtm", "pred"]],
+            t_update_df=src_df[pred_header_cols + ["rtm", "pred"]],
             t_using_index=False
         )
-
-        print("... {0} | {3} | {1:>24s} | {2} | tested |".format(
-            dt.datetime.now(), model_grp_id, train_end_month, model_lbl))
 
     predictions_lib.close()
     features_and_return_lib.close()
