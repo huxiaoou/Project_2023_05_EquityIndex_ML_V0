@@ -33,7 +33,7 @@ def ml_normalize(instrument: str | None, tid: str | None, trn_win: int,
     """
 
     init_conds = [(k, "=", v) for k, v in zip(("instrument", "tid"), (instrument, tid)) if v is not None]
-    model_grp_id = "-".join(["M"] + list(filter(lambda z: z, [instrument, tid])) + ["TMW{:02d}".format(trn_win)])
+    model_grp_id = "-".join(filter(lambda z: z, ["M", instrument, tid, "TMW{:02d}".format(trn_win)]))
 
     if stp_date is None:
         stp_date = (dt.datetime.strptime(bgn_date, "%Y%m%d") + dt.timedelta(days=1)).strftime("%Y%m%d")
@@ -68,7 +68,6 @@ def ml_normalize(instrument: str | None, tid: str | None, trn_win: int,
             t_conditions=conds,
             t_value_columns=x_lbls + y_lbls
         )
-
         if len(src_df) < minimum_data_size:
             continue
 

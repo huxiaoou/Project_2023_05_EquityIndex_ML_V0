@@ -34,7 +34,7 @@ def ml_linear_regression(instrument: str | None, tid: str | None, trn_win: int,
     """
 
     init_conds = [(k, "=", v) for k, v in zip(("instrument", "tid"), (instrument, tid)) if v is not None]
-    model_grp_id = "-".join(["M"] + list(filter(lambda z: z, [instrument, tid])))
+    model_grp_id = "-".join(filter(lambda z: z, ["M", instrument, tid, "TMW{:02d}".format(trn_win)]))
 
     if stp_date is None:
         stp_date = (dt.datetime.strptime(bgn_date, "%Y%m%d") + dt.timedelta(days=1)).strftime("%Y%m%d")
@@ -69,7 +69,6 @@ def ml_linear_regression(instrument: str | None, tid: str | None, trn_win: int,
             t_conditions=conds,
             t_value_columns=x_lbls + y_lbls
         )
-
         if len(src_df) < minimum_data_size:
             continue
 
@@ -78,7 +77,7 @@ def ml_linear_regression(instrument: str | None, tid: str | None, trn_win: int,
         # --- normalize
         scaler_path = os.path.join(
             model_month_dir,
-            "{}_{}_TMW{:02d}.scl".format(model_grp_id, train_end_month, trn_win)
+            "{}-{}.scl".format(model_grp_id, train_end_month)
         )
         scaler = read_from_sio_obj(scaler_path)
         x_train = scaler.transform(x_df)
@@ -88,7 +87,7 @@ def ml_linear_regression(instrument: str | None, tid: str | None, trn_win: int,
         lm.fit(X=x_train, y=y_df)
         lm_path = os.path.join(
             model_month_dir,
-            "{}_{}_TMW{:02d}.lm".format(model_grp_id, train_end_month, trn_win)
+            "{}-{}.lm".format(model_grp_id, train_end_month)
         )
         save_to_sio_obj(lm, lm_path)
         r20 = lm.score(X=x_train, y=y_df)
@@ -103,8 +102,8 @@ def ml_linear_regression(instrument: str | None, tid: str | None, trn_win: int,
         # e = sst - ssr - sse
         # r22 = 1 - sse / sst
 
-        print("... {} | LR | {:>12s} | {} | M{:02} | R-square = {:.6f} |".format(
-            dt.datetime.now(), model_grp_id, train_end_month, trn_win, r20))
+        print("... {0} | LR | {1:>24s} | {2} | R-square = {3:.6f} |".format(
+            dt.datetime.now(), model_grp_id, train_end_month, r20))
 
     features_and_return_lib.close()
     return 0

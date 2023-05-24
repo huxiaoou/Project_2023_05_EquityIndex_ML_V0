@@ -53,8 +53,8 @@ train_windows = (6, 12, 24)
 model_lbls = ["lm", "mlpc", "mlpr"]
 for instrument, tid, trn_win, model_lbl in ittl.product(
         instruments_universe + [None], tids + [None], train_windows, model_lbls):
-    model_grp_id = "-".join(["M"] + list(filter(lambda z: z, [instrument, tid])))
-    pred_id = model_grp_id + "-TMW{:02d}".format(trn_win) + "-pred-{}".format(model_lbl)
+    model_grp_id = "-".join(filter(lambda z: z, ["M", instrument, tid, "TMW{:02d}".format(trn_win)]))
+    pred_id = model_grp_id + "-pred-{}".format(model_lbl)
     sqlite3_tables.update({
         pred_id: {
             "table_name": "predictions",
