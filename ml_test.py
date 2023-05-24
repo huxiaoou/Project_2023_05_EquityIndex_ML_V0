@@ -1,6 +1,5 @@
 import os
 import datetime as dt
-import sys
 from skyrim.falkreath import CManagerLibReader, CManagerLibWriter, CTable
 from skyrim.whiterun import CCalendarMonthly
 from xfuns import read_from_sio_obj
@@ -33,8 +32,9 @@ def ml_model_test(model_lbl: str,
     """
 
     init_conds = [(k, "=", v) for k, v in zip(("instrument", "tid"), (instrument, tid)) if v is not None]
-    model_grp_id = "-".join(["M"] + list(filter(lambda z: z, [instrument, tid])))
-    pred_id = model_grp_id + "-TMW{:02d}".format(trn_win) + "-pred-{}".format(model_lbl)
+    model_grp_id = "-".join(filter(lambda z: z, ["M", instrument, tid, "TMW{:02d}".format(trn_win)]))
+    pred_id = model_grp_id + "-pred-{}".format(model_lbl)
+    pred_header_cols = ["trade_date", "instrument", "contract", "tid", "timestamp"]
 
     if stp_date is None:
         stp_date = (dt.datetime.strptime(bgn_date, "%Y%m%d") + dt.timedelta(days=1)).strftime("%Y%m%d")
@@ -75,38 +75,39 @@ def ml_model_test(model_lbl: str,
         ]
         src_df = features_and_return_lib.read_by_conditions(
             t_conditions=conds,
-            t_value_columns=["trade_date", "instrument", "contract", "tid", "timestamp"] + x_lbls + y_lbls
+            t_value_columns=pred_header_cols + x_lbls + y_lbls
         )
         x_df, y_df = src_df[x_lbls], src_df[y_lbls]
 
         # --- normalize
         scaler_path = os.path.join(
             model_month_dir,
-            "{}_{}_TMW{:02d}.scl".format(model_grp_id, train_end_month, trn_win)
+            "{}-{}.scl".format(model_grp_id, train_end_month)
         )
         try:
             scaler = read_from_sio_obj(scaler_path)
         except FileNotFoundError:
             continue
-        x_test = scaler.transform(x_df)
 
         # --- fit model
-        model_month_file = "{}_{}_TMW{:02d}.{}".format(model_grp_id, train_end_month, trn_win, model_lbl)
-        train_model_path = os.path.join(model_month_dir, model_month_file)
-        try:
-            train_model = read_from_sio_obj(train_model_path)
-        except FileNotFoundError:
-            print("... train model path = {} does not exist".format(train_model_path))
-            print("... please check again")
-            print("... this program will terminate at once")
-            sys.exit()
+        x_test = scaler.transform(x_df)
 
+        train_model_file = "{}-{}.{}".format(model_grp_id, train_end_month, model_lbl)
+        train_model_path = os.path.join(model_month_dir, train_model_file)
+
+        # --- load model
+        train_model = read_from_sio_obj(train_model_path)
+
+        # --- prediction
         src_df["pred"] = train_model.predict(X=x_test)[:, 0]
         predictions_lib.update(
-            t_update_df=src_df[["trade_date", "instrument", "contract", "tid", "timestamp", "rtm", "pred"]],
+            t_update_df=src_df[["rtm", "pred"]],
             t_using_index=False
         )
 
-    features_and_return_lib.close()
+        print("... {0} | {3} | {1:>24s} | {2} | tested |".format(
+            dt.datetime.now(), model_grp_id, train_end_month, model_lbl))
+
     predictions_lib.close()
+    features_and_return_lib.close()
     return 0

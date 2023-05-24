@@ -70,7 +70,6 @@ def ml_normalize(instrument: str | None, tid: str | None, trn_win: int,
         )
         if len(src_df) < minimum_data_size:
             continue
-
         x_df, y_df = src_df[x_lbls], src_df[y_lbls]
 
         # --- normalize

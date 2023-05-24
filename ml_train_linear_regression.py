@@ -3,7 +3,6 @@ import datetime as dt
 from sklearn.linear_model import LinearRegression
 from skyrim.falkreath import CManagerLibReader, CTable
 from skyrim.whiterun import CCalendarMonthly
-from skyrim.winterhold import check_and_mkdir
 from xfuns import save_to_sio_obj
 from xfuns import read_from_sio_obj
 
@@ -14,7 +13,6 @@ def ml_linear_regression(instrument: str | None, tid: str | None, trn_win: int,
                          features_and_return_dir: str, models_dir: str,
                          sqlite3_tables: dict,
                          x_lbls: list, y_lbls: list,
-                         minimum_data_size: int = 100
                          ):
     """
 
@@ -29,7 +27,6 @@ def ml_linear_regression(instrument: str | None, tid: str | None, trn_win: int,
     :param sqlite3_tables:
     :param x_lbls:
     :param y_lbls: "rtm" must be in it
-    :param minimum_data_size:
     :return:
     """
 
@@ -55,10 +52,9 @@ def ml_linear_regression(instrument: str | None, tid: str | None, trn_win: int,
     iter_months = calendar.map_iter_dates_to_iter_months(bgn_date, stp_date)
 
     # --- main core
-    lm = LinearRegression()
+    train_model, model_lbl = LinearRegression(), "lm"
     for train_end_month in iter_months:
-        check_and_mkdir(os.path.join(models_dir, train_end_month[0:4]))
-        check_and_mkdir(model_month_dir := os.path.join(models_dir, train_end_month[0:4], train_end_month))
+        model_month_dir = os.path.join(models_dir, train_end_month[0:4], train_end_month)
 
         train_bgn_date, train_end_date = calendar.get_bgn_and_end_dates_for_trailing_window(train_end_month, trn_win)
         conds = init_conds + [
@@ -69,9 +65,6 @@ def ml_linear_regression(instrument: str | None, tid: str | None, trn_win: int,
             t_conditions=conds,
             t_value_columns=x_lbls + y_lbls
         )
-        if len(src_df) < minimum_data_size:
-            continue
-
         x_df, y_df = src_df[x_lbls], src_df[y_lbls]
 
         # --- normalize
@@ -79,31 +72,38 @@ def ml_linear_regression(instrument: str | None, tid: str | None, trn_win: int,
             model_month_dir,
             "{}-{}.scl".format(model_grp_id, train_end_month)
         )
-        scaler = read_from_sio_obj(scaler_path)
-        x_train = scaler.transform(x_df)
-        # equivalent to: x_train = (x_df - x_df.mean()) / x_df.std(ddof=0)
+        try:
+            scaler = read_from_sio_obj(scaler_path)
+        except FileNotFoundError:
+            continue
 
         # --- fit model
-        lm.fit(X=x_train, y=y_df)
-        lm_path = os.path.join(
-            model_month_dir,
-            "{}-{}.lm".format(model_grp_id, train_end_month)
-        )
-        save_to_sio_obj(lm, lm_path)
-        r20 = lm.score(X=x_train, y=y_df)
-        # # --- validate
-        # y = y_df.values[:, 0]
-        # y_h = lm.predict(X=x_train)[:, 0]
-        # n = len(y)
-        # r21 = np.corrcoef(y, y_h)[0, 1] ** 2
-        # sst = np.sum((y - y.mean()) ** 2)
-        # ssr = np.sum((y_h - y.mean()) ** 2)
-        # sse = np.sum((y - y_h) ** 2)
-        # e = sst - ssr - sse
-        # r22 = 1 - sse / sst
+        x_train = scaler.transform(x_df)
+        train_model.fit(X=x_train, y=y_df)
 
-        print("... {0} | LR | {1:>24s} | {2} | R-square = {3:.6f} |".format(
-            dt.datetime.now(), model_grp_id, train_end_month, r20))
+        train_model_file = "{}-{}.{}".format(model_grp_id, train_end_month, model_lbl)
+        train_model_path = os.path.join(model_month_dir, train_model_file)
+
+        # --- save model
+        save_to_sio_obj(train_model, train_model_path)
+
+        print("... {0} | {3} | {1:>24s} | {2} | fitted |".format(
+            dt.datetime.now(), model_grp_id, train_end_month, model_lbl))
 
     features_and_return_lib.close()
     return 0
+
+# ---
+# scaler transform is equivalent to
+# x_train = (x_df - x_df.mean()) / x_df.std(ddof=0)
+# ---
+# validate
+# y = y_df.values[:, 0]
+# y_h = lm.predict(X=x_train)[:, 0]
+# n = len(y)
+# r21 = np.corrcoef(y, y_h)[0, 1] ** 2
+# sst = np.sum((y - y.mean()) ** 2)
+# ssr = np.sum((y_h - y.mean()) ** 2)
+# sse = np.sum((y - y_h) ** 2)
+# e = sst - ssr - sse
+# r22 = 1 - sse / sst
