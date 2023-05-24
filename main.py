@@ -15,18 +15,18 @@ from project_config import instruments_universe, tids
 from project_config import train_windows
 from project_config import x_lbls, y_lbls
 from project_config import cost_rate
-from dp_00_features_and_return import cal_features_and_return
+from dp_00_features_and_return import split_spot_daily_k, cal_features_and_return
 from dp_01_convert_csv_to_sqlite3 import convert_csv_to_sqlite3
 from ml_normalize import ml_normalize
 from ml_train_linear_regression import ml_linear_regression
 from ml_test import ml_model_test
 from ml_summary import ml_summary
 
-md_bgn_date, md_stp_date = "20160101", "20230515"
-trn_bgn_date, trn_stp_date = "20180101", "20230515"
+md_bgn_date, md_stp_date = "20160101", "20230522"
+trn_bgn_date, trn_stp_date = "20180101", "20230522"
 
 switch = {
-    "features_and_return": True,
+    "features_and_return": False,
     "toSql": False,
     "normalize": False,
     "lm": False,
@@ -35,6 +35,7 @@ switch = {
 }
 
 if switch["features_and_return"]:
+    split_spot_daily_k(equity_index_by_instrument_dir, equity_indexes)
     cal_features_and_return(
         bgn_date=md_bgn_date, stp_date=md_stp_date, equity_indexes=equity_indexes,
         calendar_path=calendar_path, futures_instru_info_path=futures_instru_info_path,

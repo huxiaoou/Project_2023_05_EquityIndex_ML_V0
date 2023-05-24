@@ -38,6 +38,7 @@ sqlite3_tables = {
             "alpha17": "REAL",
             "alpha18": "REAL",
             "alpha19": "REAL",
+            "alpha20": "REAL",
             "rtm": "REAL",
         }
     },

@@ -9,6 +9,18 @@ from skyrim.falkreath import CManagerLibReader, CTable
 from xfuns import cal_features_and_return_one_day
 
 
+def split_spot_daily_k(equity_index_by_instrument_dir: str, equity_indexes: list[str]):
+    daily_k_file = "daily_k.xlsx"
+    daily_k_path = os.path.join(equity_index_by_instrument_dir, daily_k_file)
+    for equity_index_code, _ in equity_indexes:
+        daily_k_df = pd.read_excel(daily_k_path, sheet_name=equity_index_code)
+        daily_k_df["trade_date"] = daily_k_df["trade_date"].map(lambda z: z.strftime("%Y%m%d"))
+        equity_index_file = "{}.csv".format(equity_index_code)
+        equity_index_path = os.path.join(equity_index_by_instrument_dir, equity_index_file)
+        daily_k_df.to_csv(equity_index_path, index=False, float_format="%.4f")
+    return 0
+
+
 def cal_features_and_return(bgn_date: str, stp_date: str,
                             equity_indexes: list[str],
                             calendar_path: str, futures_instru_info_path: str,
@@ -42,9 +54,7 @@ def cal_features_and_return(bgn_date: str, stp_date: str,
     for equity_index_code, equity_instru_id in equity_indexes:
         spot_data_file = "{}.csv".format(equity_index_code)
         spot_data_path = os.path.join(equity_index_by_instrument_dir, spot_data_file)
-        spot_df = pd.read_csv(spot_data_path, dtype={"trade_date": str})
-        spot_df["trade_date"] = spot_df["trade_date"].map(lambda z: z.replace("-", ""))
-        spot_df.set_index("trade_date", inplace=True)
+        spot_df = pd.read_csv(spot_data_path, dtype={"trade_date": str}).set_index("trade_date")
         spot_data_manager[equity_instru_id] = spot_df
 
         futures_md_file = "{}.md.settle.csv.gz".format(equity_instru_id)
@@ -94,7 +104,7 @@ def cal_features_and_return(bgn_date: str, stp_date: str,
 
             contract_multiplier = instru_info_table.get_multiplier(equity_instru_id)
             features_and_ret_df = cal_features_and_return_one_day(
-                df=major_contract_m01_df,
+                m01=major_contract_m01_df,
                 instrument=equity_instru_id, contract=major_contract, contract_multiplier=contract_multiplier,
                 pre_settle=pre_settle, pre_spot_close=pre_spot_close)
 
