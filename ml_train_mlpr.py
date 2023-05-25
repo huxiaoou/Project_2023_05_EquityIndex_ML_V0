@@ -1,6 +1,8 @@
 import os
 import datetime as dt
 import numpy as np
+import itertools as ittl
+import multiprocessing as mp
 from sklearn.neural_network import MLPRegressor
 from skyrim.falkreath import CManagerLibReader, CTable
 from skyrim.whiterun import CCalendarMonthly
@@ -95,6 +97,7 @@ def ml_mlpr(instrument: str | None, tid: str | None, trn_win: int,
     features_and_return_lib.close()
     return 0
 
+
 # ---
 # scaler transform is equivalent to
 # x_train = (x_df - x_df.mean()) / x_df.std(ddof=0)
@@ -109,3 +112,50 @@ def ml_mlpr(instrument: str | None, tid: str | None, trn_win: int,
 # sse = np.sum((y - y_h) ** 2)
 # e = sst - ssr - sse
 # r22 = 1 - sse / sst
+
+def process_target_fun_for_ml_mlpr(group_id: int, group_n: int,
+                                   instruments: list[str], tids: list[str], train_windows: list[int],
+                                   bgn_date: str, stp_date: str,
+                                   calendar_path: str,
+                                   features_and_return_dir: str, models_dir: str,
+                                   sqlite3_tables: dict,
+                                   x_lbls: list, y_lbls: list,
+                                   ):
+    for i, (instrument, tid, trn_win) in enumerate(ittl.product(instruments, tids, train_windows)):
+        if i % group_n == group_id:
+            ml_mlpr(
+                instrument=instrument, tid=tid, trn_win=trn_win,
+                bgn_date=bgn_date, stp_date=stp_date,
+                calendar_path=calendar_path,
+                features_and_return_dir=features_and_return_dir,
+                models_dir=models_dir,
+                sqlite3_tables=sqlite3_tables,
+                x_lbls=x_lbls, y_lbls=y_lbls
+            )
+    return 0
+
+
+def multi_process_fun_for_ml_mlpr(group_n: int,
+                                  instruments: list[str], tids: list[str], train_windows: list[int],
+                                  bgn_date: str, stp_date: str,
+                                  calendar_path: str,
+                                  features_and_return_dir: str, models_dir: str,
+                                  sqlite3_tables: dict,
+                                  x_lbls: list, y_lbls: list,
+                                  ):
+    to_join_list = []
+    for group_id in range(group_n):
+        t = mp.Process(target=process_target_fun_for_ml_mlpr, args=(
+            group_id, group_n,
+            instruments, tids, train_windows,
+            bgn_date, stp_date,
+            calendar_path,
+            features_and_return_dir, models_dir,
+            sqlite3_tables,
+            x_lbls, y_lbls,
+        ))
+        t.start()
+        to_join_list.append(t)
+    for t in to_join_list:
+        t.join()
+    return 0

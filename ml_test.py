@@ -1,13 +1,14 @@
 import os
 import datetime as dt
 import numpy as np
+import itertools as ittl
+import multiprocessing as mp
 from skyrim.falkreath import CManagerLibReader, CManagerLibWriter, CTable
 from skyrim.whiterun import CCalendarMonthly
 from xfuns import read_from_sio_obj
 
 
-def ml_model_test(model_lbl: str,
-                  instrument: str | None, tid: str | None, trn_win: int,
+def ml_model_test(model_lbl: str, instrument: str | None, tid: str | None, trn_win: int,
                   bgn_date: str, stp_date: str,
                   calendar_path: str,
                   features_and_return_dir: str, models_dir: str, predictions_dir: str,
@@ -108,4 +109,53 @@ def ml_model_test(model_lbl: str,
 
     predictions_lib.close()
     features_and_return_lib.close()
+    return 0
+
+
+def process_target_fun_for_ml_test(group_id: int, group_n: int,
+                                   model_lbls: list[str], instruments: list[str], tids: list[str], train_windows: list[int],
+                                   bgn_date: str, stp_date: str,
+                                   calendar_path: str,
+                                   features_and_return_dir: str, models_dir: str, predictions_dir: str,
+                                   sqlite3_tables: dict,
+                                   x_lbls: list, y_lbls: list,
+                                   ):
+    for i, (model_lbl, instrument, tid, trn_win) in enumerate(ittl.product(model_lbls, instruments, tids, train_windows)):
+        if i % group_n == group_id:
+            ml_model_test(
+                model_lbl=model_lbl, instrument=instrument, tid=tid, trn_win=trn_win,
+                bgn_date=bgn_date, stp_date=stp_date,
+                calendar_path=calendar_path,
+                features_and_return_dir=features_and_return_dir,
+                models_dir=models_dir,
+                predictions_dir=predictions_dir,
+                sqlite3_tables=sqlite3_tables,
+                x_lbls=x_lbls, y_lbls=y_lbls
+            )
+    return 0
+
+
+def multi_process_fun_for_ml_test(group_n: int,
+                                  model_lbls: list[str], instruments: list[str], tids: list[str], train_windows: list[int],
+                                  bgn_date: str, stp_date: str,
+                                  calendar_path: str,
+                                  features_and_return_dir: str, models_dir: str, predictions_dir: str,
+                                  sqlite3_tables: dict,
+                                  x_lbls: list, y_lbls: list,
+                                  ):
+    to_join_list = []
+    for group_id in range(group_n):
+        t = mp.Process(target=process_target_fun_for_ml_test, args=(
+            group_id, group_n,
+            model_lbls, instruments, tids, train_windows,
+            bgn_date, stp_date,
+            calendar_path,
+            features_and_return_dir, models_dir, predictions_dir,
+            sqlite3_tables,
+            x_lbls, y_lbls,
+        ))
+        t.start()
+        to_join_list.append(t)
+    for t in to_join_list:
+        t.join()
     return 0
