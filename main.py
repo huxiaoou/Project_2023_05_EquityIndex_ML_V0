@@ -18,7 +18,9 @@ from project_config import cost_rate
 from dp_00_features_and_return import split_spot_daily_k, cal_features_and_return
 from dp_01_convert_csv_to_sqlite3 import convert_csv_to_sqlite3
 from ml_normalize import ml_normalize
-from ml_train_linear_regression import ml_linear_regression
+from ml_train_lm import ml_lm
+from ml_train_mlpr import ml_mlpr
+from ml_train_mlpc import ml_mlpc
 from ml_test import ml_model_test
 from ml_summary import ml_summary
 
@@ -30,6 +32,8 @@ switch = {
     "toSql": False,
     "normalize": False,
     "lm": False,
+    "mlpr": False,
+    "mlpc": False,
     "test": False,
     "summary": False,
 }
@@ -72,7 +76,31 @@ if switch["normalize"]:
 
 if switch["lm"]:
     for instrument, tid, trn_win in ittl.product(instruments_universe + [None], tids + [None], train_windows):
-        ml_linear_regression(
+        ml_lm(
+            instrument=instrument, tid=tid, trn_win=trn_win,
+            bgn_date=trn_bgn_date, stp_date=trn_stp_date,
+            calendar_path=calendar_path,
+            features_and_return_dir=research_features_and_return_dir,
+            models_dir=research_models_dir,
+            sqlite3_tables=sqlite3_tables,
+            x_lbls=x_lbls, y_lbls=y_lbls
+        )
+
+if switch["mlpr"]:
+    for instrument, tid, trn_win in ittl.product(instruments_universe + [None], tids + [None], train_windows):
+        ml_mlpr(
+            instrument=instrument, tid=tid, trn_win=trn_win,
+            bgn_date=trn_bgn_date, stp_date=trn_stp_date,
+            calendar_path=calendar_path,
+            features_and_return_dir=research_features_and_return_dir,
+            models_dir=research_models_dir,
+            sqlite3_tables=sqlite3_tables,
+            x_lbls=x_lbls, y_lbls=y_lbls
+        )
+
+if switch["mlpc"]:
+    for instrument, tid, trn_win in ittl.product(instruments_universe + [None], tids + [None], train_windows):
+        ml_mlpc(
             instrument=instrument, tid=tid, trn_win=trn_win,
             bgn_date=trn_bgn_date, stp_date=trn_stp_date,
             calendar_path=calendar_path,
@@ -85,7 +113,8 @@ if switch["lm"]:
 if switch["test"]:
     for instrument, tid, trn_win in ittl.product(instruments_universe + [None], tids + [None], train_windows):
         ml_model_test(
-            model_lbl="lm",
+            # model_lbl="lm",
+            model_lbl="mlpr",
             instrument=instrument, tid=tid, trn_win=trn_win,
             bgn_date=trn_bgn_date, stp_date=trn_stp_date,
             calendar_path=calendar_path,
@@ -98,7 +127,8 @@ if switch["test"]:
 
 if switch["summary"]:
     ml_summary(
-        model_lbl="lm",
+        # model_lbl="lm",
+        model_lbl="mlpr",
         instruments_universe=instruments_universe, tids=tids, train_windows=train_windows,
         sqlite3_tables=sqlite3_tables,
         research_predictions_dir=research_predictions_dir,

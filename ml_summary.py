@@ -71,7 +71,10 @@ def ml_summary_model(model_lbl: str,
         cal_precision_and_recall(t_value=1, t_y_actu=cls_df["rtm"], t_y_pred=cls_df["pred"]))
 
     # simu trades
-    predictions_df["raw_ret"] = np.sign(predictions_df["pred"]) * predictions_df["rtm"] / ret_scale
+    if model_lbl in ["lm", "mlpr"]:
+        predictions_df["raw_ret"] = np.sign(predictions_df["pred"]) * predictions_df["rtm"] / ret_scale
+    else:
+        predictions_df["raw_ret"] = np.sign(predictions_df["pred"] * 2 - 1) * predictions_df["rtm"] / ret_scale
     summary_trades = summary_header.copy()
     summary_trades.update(
         cal_trades(t_raw_df=predictions_df, t_cost_rate=cost_rate))

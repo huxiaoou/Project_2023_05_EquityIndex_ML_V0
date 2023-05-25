@@ -1,20 +1,20 @@
 import os
 import datetime as dt
 import numpy as np
-from sklearn.linear_model import LinearRegression
+from sklearn.neural_network import MLPClassifier
 from skyrim.falkreath import CManagerLibReader, CTable
 from skyrim.whiterun import CCalendarMonthly
 from xfuns import save_to_sio_obj
 from xfuns import read_from_sio_obj
 
 
-def ml_linear_regression(instrument: str | None, tid: str | None, trn_win: int,
-                         bgn_date: str, stp_date: str,
-                         calendar_path: str,
-                         features_and_return_dir: str, models_dir: str,
-                         sqlite3_tables: dict,
-                         x_lbls: list, y_lbls: list,
-                         ):
+def ml_mlpc(instrument: str | None, tid: str | None, trn_win: int,
+            bgn_date: str, stp_date: str,
+            calendar_path: str,
+            features_and_return_dir: str, models_dir: str,
+            sqlite3_tables: dict,
+            x_lbls: list, y_lbls: list,
+            ):
     """
 
     :param instrument: like IC.CFE
@@ -53,7 +53,8 @@ def ml_linear_regression(instrument: str | None, tid: str | None, trn_win: int,
     iter_months = calendar.map_iter_dates_to_iter_months(bgn_date, stp_date)
 
     # --- main core
-    train_model, model_lbl = LinearRegression(), "lm"
+    train_model, model_lbl = \
+        MLPClassifier(hidden_layer_sizes=(5, 5), solver="adam", random_state=0, alpha=1.0, max_iter=2000), "mlpr"
     for train_end_month in iter_months:
         model_month_dir = os.path.join(models_dir, train_end_month[0:4], train_end_month)
 
@@ -80,7 +81,7 @@ def ml_linear_regression(instrument: str | None, tid: str | None, trn_win: int,
 
         # --- fit model
         x_train = np.nan_to_num(scaler.transform(x_df), nan=0)
-        train_model.fit(X=x_train, y=y_df)
+        train_model.fit(X=x_train, y=list(map(lambda z: 1 if z >= 0 else 0, y_df.values[:, 0])))
 
         train_model_file = "{}-{}.{}".format(model_grp_id, train_end_month, model_lbl)
         train_model_path = os.path.join(model_month_dir, train_model_file)
