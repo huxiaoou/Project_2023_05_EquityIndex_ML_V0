@@ -33,14 +33,15 @@ def cal_precision_and_recall(t_value: int, t_y_actu: np.ndarray, t_y_pred: np.nd
 def cal_trades(t_raw_df: pd.DataFrame, t_cost_rate: float):
     ret_df = t_raw_df[["trade_date", "raw_ret"]].groupby("trade_date")[["raw_ret"]].apply(lambda z: z.mean(axis=0))
     ret_df["net_ret"] = ret_df["raw_ret"] - t_cost_rate
+    ret_df["nav"] = (ret_df["net_ret"] + 1).cumprod()
     nav = CNAV(t_raw_nav_srs=ret_df["net_ret"], t_annual_rf_rate=0, t_type="RET", t_freq="D")
     nav.cal_all_indicators()
-    return nav.to_dict(t_type="eng")
+    return nav.to_dict(t_type="eng"), ret_df[["net_ret", "nav"]]
 
 
 def ml_summary_model(model_lbl: str,
                      instrument: str | None, tid: str | None, trn_win: int,
-                     predictions_dir: str,
+                     predictions_dir: str, navs_dir: str,
                      sqlite3_tables: dict,
                      cost_rate: float, ret_scale: int = 100
                      ):
@@ -57,6 +58,9 @@ def ml_summary_model(model_lbl: str,
         t_value_columns=["trade_date", "instrument", "contract", "tid", "timestamp", "rtm", "pred"]
     )
 
+    if model_lbl in ["mlpc"]:
+        predictions_df["pred"] = predictions_df["pred"] * 2 - 1
+
     summary_header = {
         "model": model_lbl,
         "instrument": instrument,
@@ -71,21 +75,20 @@ def ml_summary_model(model_lbl: str,
         cal_precision_and_recall(t_value=1, t_y_actu=cls_df["rtm"], t_y_pred=cls_df["pred"]))
 
     # simu trades
-    if model_lbl in ["lm", "mlpr"]:
-        predictions_df["raw_ret"] = np.sign(predictions_df["pred"]) * predictions_df["rtm"] / ret_scale
-    else:
-        predictions_df["raw_ret"] = np.sign(predictions_df["pred"] * 2 - 1) * predictions_df["rtm"] / ret_scale
+    predictions_df["raw_ret"] = np.sign(predictions_df["pred"]) * predictions_df["rtm"] / ret_scale
     summary_trades = summary_header.copy()
-    summary_trades.update(
-        cal_trades(t_raw_df=predictions_df, t_cost_rate=cost_rate))
-
+    sum_trades, nav_df = cal_trades(t_raw_df=predictions_df, t_cost_rate=cost_rate)
+    summary_trades.update(sum_trades)
+    nav_file = "{}-nav.csv.gz".format(pred_id)
+    nav_path = os.path.join(navs_dir, nav_file)
+    nav_df.to_csv(nav_path, float_format="%.8f")
     return summary_model, summary_trades
 
 
 def ml_summary(model_lbl: str,
                instruments_universe: list[str], tids: list[str], train_windows: list[int],
                sqlite3_tables: dict,
-               research_predictions_dir: dir,
+               predictions_dir: str, navs_dir: str,
                research_summary_dir: str,
                cost_rate: float,
                ):
@@ -94,13 +97,17 @@ def ml_summary(model_lbl: str,
         ans_model, ans_trade = ml_summary_model(
             model_lbl=model_lbl,
             instrument=instrument, tid=tid, trn_win=train_window,
-            predictions_dir=research_predictions_dir,
+            predictions_dir=predictions_dir, navs_dir=navs_dir,
             sqlite3_tables=sqlite3_tables,
             cost_rate=cost_rate
         )
         res_models.append(ans_model)
         res_trades.append(ans_trade)
-        print("...", instrument, tid, train_window, "summarized")
+        print("... | {:>8s} | {:>8s} | {:>3s} | TMW{:02d} | summarized |".format(
+            model_lbl,
+            instrument if instrument else "",
+            tid if tid else "",
+            train_window))
     res_models_df, res_trades_df = pd.DataFrame(res_models), pd.DataFrame(res_trades)
 
     res_models_file = "summary.{}.models.csv.gz".format(model_lbl)

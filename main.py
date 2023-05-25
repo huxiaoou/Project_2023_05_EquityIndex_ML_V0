@@ -7,6 +7,7 @@ from project_setup import futures_md_structure_path, futures_em01_db_name, futur
 from project_setup import major_minor_dir
 from project_setup import research_features_and_return_dir
 from project_setup import research_models_dir
+from project_setup import research_navs_dir
 from project_setup import research_predictions_dir
 from project_setup import research_summary_dir
 from project_config import sqlite3_tables
@@ -127,12 +128,12 @@ if __name__ == "__main__":
         )
 
     if switch["summary"]:
-        ml_summary(
-            # model_lbl="lm",
-            model_lbl="mlpr",
-            instruments_universe=instruments_universe, tids=tids, train_windows=train_windows,
-            sqlite3_tables=sqlite3_tables,
-            research_predictions_dir=research_predictions_dir,
-            research_summary_dir=research_summary_dir,
-            cost_rate=cost_rate
-        )
+        for model_lbl in ["lm", "mlpr", "mlpc"]:
+            ml_summary(
+                model_lbl=model_lbl,
+                instruments_universe=instruments_universe, tids=tids, train_windows=train_windows,
+                sqlite3_tables=sqlite3_tables,
+                predictions_dir=research_predictions_dir, navs_dir=research_navs_dir,
+                research_summary_dir=research_summary_dir,
+                cost_rate=cost_rate
+            )
